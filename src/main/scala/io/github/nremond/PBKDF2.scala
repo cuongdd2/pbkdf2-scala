@@ -27,22 +27,22 @@ object PBKDF2 {
   /**
    * Implements PBKDF2 as defined in RFC 2898, section 5.2
    *
-   * HMAC+SHA256 is used as the default pseudo random function.
+   * SHA256 is used as the default pseudo random function.
    *
    * Right now 20,000 iterations is the strictly recommended default minimum. It takes 100ms on a i5 M-580 2.6GHz CPU.
    * The minimum increases every year, please keep that in mind.
    * You may want to use the ScalaMeter test to tune your settings.
    *
-   * @password : the password to encrypt
-   * @salt : the RFC 2898 recommends salt that is at least 64 bits long
-   * @iterations : the number of encryption iterations
-   * @dkLength : derived-key length
-   * @cryptoAlgo : HMAC+SHA256 is the default as HMAC+SHA1 is now considered weak
-   * @return the encrypted password
+   * @param password the password to encrypt
+   * @param salt : the NIST recommends salt that is at least 128 bits(16 bytes) long
+   * @param iterations : the number of encryption iterations, NIST recommends at least 1000
+   * @param kLength : derived-key length NIST recommends at least 112 bits(12 bytes)
+   * @param algo : SHA256 is the default as HMAC+SHA1 is now considered weak
+   * @return the encrypted password in byte array
    */
-  def apply(password: String, salt: String, iterations: Int = 20000, dkLength: Int = 32, cryptoAlgo: String = "HmacSHA256"): String = {
+  def apply(password: String, salt: String, iterations: Int = 20000, kLength: Int = 32, algo: String = "SHA256"): Array[Byte] = {
 
-    val mac = crypto.Mac.getInstance(cryptoAlgo)
+    val mac = crypto.Mac.getInstance(algo)
     val saltBuff = salt.getBytes("UTF8")
     mac.init(new crypto.spec.SecretKeySpec(password.getBytes("UTF8"), "RAW"))
 
@@ -77,8 +77,8 @@ object PBKDF2 {
     }
 
     // how many blocks we'll need to calculate (the last may be truncated)
-    val blocksNeeded = (dkLength.toFloat / 20).ceil.toInt
+    val blocksNeeded = (kLength.toFloat / 20).ceil.toInt
 
-    (1 to blocksNeeded).map(calculateBlock(_).map("%02x" format _)).flatten.mkString.substring(0, dkLength * 2)
+    (1 to blocksNeeded).map(calculateBlock).flatten.toArray
   }
 }
